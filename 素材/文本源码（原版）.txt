@@ -1,0 +1,198 @@
+Dim I As Integer
+Dim DatPath As String, FDat() As Byte, AllDat() As String '数据库内容
+Dim user As String, YMNum As Integer, YMN3 As String, MN As Integer '用户昵称,消息
+Dim AboutRob() As String, Hello() As String, AnsTyp() As String '关于机器人,机器人欢迎语,回复方式
+Dim YourMsg As String, RobMsg As String '消息
+Dim BadMsg() As String, RndUnAns1() As String, RndUnAns2() As String '不良消息,拒答的回复数据
+Dim RndQus() As String, RndAns() As String, AIAns() As String '随机回答的数据,智能回答的数据,随机提问的数据
+Dim Compt() As String, CTXT As String '数学计算的附带文字
+
+Private Sub Command3_Click()
+Me.Height = 8265
+Me.Top = (Screen.Height - Me.Height) / 2
+Text3(1).Text = YourMsg
+Text3(2).SetFocus
+End Sub
+
+Private Sub Form_Load()
+'On Error GoTo ErrorAI:
+DatPath = App.Path & IIf(Right(App.Path, 1) = "\", "", "\") & "Data.ait"
+FDat = LoadResData(101, "CUSTOM")
+AboutRob = Split("|小志|公的,帅哥|08年8月诞生|地球村,中国|简体中文|我天生比较聪明,只要你教过我的东西,我一定会记住的!|VB6.0|zhijian01", "|")
+AnsTyp = Split("| 已经回复消息| 向你发送消息| 似乎未能理解其意......|", "|")
+If Dir(DatPath, vbHidden Or vbReadOnly Or vbSystem) = "" Then
+user = InputBox("您好!我是智能聊天机器人,称谓 " & AboutRob(1) & vbCr & vbCr & "初次见面,请告诉我您的名字:")
+If user = "" Then
+UN:
+user = InputBox("喂喂,先别着急,我还不知道你的名字呢:", "Hello", "无名人士")
+If user = "" Then GoTo UN
+End If
+Open DatPath For Output As #1
+Print #1, "|" & user & "|"
+Print #1, StrConv(FDat, vbUnicode)
+Close #1
+End If
+'开始获取数据
+Open DatPath For Binary As #1
+ReDim FDat(FileLen(DatPath) - 1) As Byte
+Get #1, , FDat
+Close #1
+AllDat = Split(StrConv(FDat, vbUnicode), "[AI_Dat]") '读取所有数据
+user = Split(AllDat(0), "|")(1) '获取用户名
+AIAns = Split(AllDat(1), "|") '获取智能回答
+
+'显示信息
+Randomize
+Label1(1).Caption = user
+Label2(1).Caption = "名字：" & AboutRob(1)
+Label2(2).Caption = "性别：" & AboutRob(2)
+Label2(3).Caption = "生日：" & AboutRob(3)
+Label2(4).Caption = "来自：" & AboutRob(4)
+Label2(5).Caption = "语言：" & AboutRob(5)
+Label2(6).Caption = "备注：" & AboutRob(6)
+Label2(7).Caption = "编译语言：" & AboutRob(7)
+Label2(8).Caption = "程序版本：" & App.Major & "." & App.Minor & "." & App.Revision
+Label2(9).Caption = "智能数据：716"
+Label2(10).Caption = "程序作者：" & AboutRob(8)
+Timer1.Enabled = True
+Exit Sub
+'出现错误
+ErrorAI:
+If MsgBox("聊天数据系统出错,点击“确定”还原聊天数据系统!", vbExclamation + vbOKCancel, "Error on AI:") = vbOK Then
+Kill DatPath
+Shell App.Path & "\" & App.EXEName & ".exe", vbNormalFocus
+End
+Else
+End
+End If
+End Sub
+Private Sub Command1_Click()
+'发送你的信息
+If Trim(Text2.Text) = "" Then
+MsgBox "请不要发送空白内容.", , ""
+Exit Sub
+End If
+YourMsg = LCase(Replace(Text2.Text, " ", ""))
+Text1.Text = Text1.Text & Time & "【" & user & "】说:" & vbNewLine
+Text1.Text = Text1.Text & Text2.Text & vbNewLine & vbNewLine
+Text1.SelStart = Len(Text1.Text)
+Text2.Text = ""
+Text2.SetFocus
+YMNum = YMNum + 1
+Label1(0).Caption = "你已发送第 " & YMNum & " 条信息"
+Timer1.Enabled = True
+Timer2.Enabled = False
+Me.Caption = "与机器人 " & AboutRob(1) & " 聊天中"
+End Sub
+
+Private Sub Timer2_Timer()
+'自动发言
+Timer1_Timer
+Timer2.Enabled = False
+End Sub
+Private Sub RobSay(Msg As String, AT As Integer)
+'接收机器人的信息
+On Error Resume Next
+BeepMsg = Replace(Msg, "[rob]", AboutRob(1))
+Msg = Replace(Msg, "[msg]", YourMsg)
+Msg = Replace(Msg, "[day]", Date)
+RobMsg = Msg
+Text1.Text = Text1.Text & Time & "【" & AboutRob(1) & "】说:" & vbNewLine
+Text1.Text = Text1.Text & RobMsg & vbNewLine & vbNewLine
+Text1.SelStart = Len(Text1.Text)
+Text2.SetFocus
+If AT = 3 Then
+Label1(0).Caption = "小志 似乎未能理解其意...【需要你来调教调教】"
+Command3.Enabled = True
+Else
+Label1(0).Caption = AboutRob(1) & AnsTyp(AT)
+Command3.Enabled = False
+End If
+Timer1.Enabled = False
+End Sub
+Private Sub Command2_Click(Index As Integer)
+'教机器人说话
+Dim Qus As String, Ans As String, AIA() As String, HaveMsg As Boolean
+If Index = 2 Then
+Me.Height = 5955
+Me.Top = (Screen.Height - Me.Height) / 2
+Text3(1).Text = ""
+Text3(2).Text = ""
+Exit Sub
+End If
+If Index = 3 Then
+MsgBox "还没做好"
+Exit Sub
+End If
+
+'判断是否为空,或重复教导,或含有分隔符
+If Trim(Text3(1).Text) = "" Or Trim(Text3(2).Text) = "" Or Qus = LCase(Replace(Text3(1).Text, " ", "")) Or _
+InStr(Text3(1).Text, "\") <> 0 Or InStr(Text3(1).Text, "|") <> 0 Then
+MsgBox "本次调教未能成功,可能的原因:" & vbCr & _
+"1,关键字或智能回复为空;" & vbCr & "2,关键字含有“|”或“\”符号.", vbExclamation, "ERR"
+Exit Sub
+End If
+Qus = "|" & LCase(Replace(Text3(1).Text, " ", "")) & "\"
+Ans = Text3(2).Text & IIf(Right(Text3(2).Text, 1) = "\", "", "\")
+For I = 1 To UBound(BadMsg) - 1
+'判断是否为不良消息
+If InStr(Qus & Ans, BadMsg(I)) <> 0 Then
+MsgBox "本次调教未能成功,可能的原因:" & vbCr & "调教内容含有不良字眼.", vbExclamation, "ERR"
+Text3(1).Text = ""
+Text3(2).Text = ""
+Qus = ""
+Ans = ""
+Exit Sub
+Exit For
+End If
+Next I
+'判断是否已存在库中
+For I = 1 To UBound(AIAns) - 1
+AIA = Split(AIAns(I), "\")
+If InStr(Qus, AIA(0)) = 0 Then
+'不存在
+HaveMsg = False
+Else
+'存在
+HaveMsg = True
+Exit For
+End If
+Next I
+If HaveMsg = False Then
+'如果不存在
+Open DatPath For Append As #1
+Print #1, Qus & Ans
+Close #1
+If MsgBox("调教成功!" & vbCr & "机器人必须重启后才能接受新知识,现在就重启机器人吗?", vbInformation + vbYesNo, "调教成功!") = vbYes Then
+Shell App.Path & "\" & App.EXEName & ".exe", vbNormalFocus
+End
+End If
+ElseIf HaveMsg = True Then
+'如果已经存在
+MsgBox "本次调教未能成功,可能的原因:" & vbCr & "调教内容已存在数据库中.", vbExclamation, "ERR"
+Exit Sub
+End If
+Me.Height = 5955
+Me.Top = (Screen.Height - Me.Height) / 2
+End Sub
+Private Sub Form_KeyPress(KeyAscii As Integer)
+If Me.Height < 7000 Then Text2.SetFocus
+End Sub
+Private Sub Form_Unload(Cancel As Integer)
+End
+End Sub
+
+Private Sub Timer1_Timer()
+'正常消息智能应答
+Dim AIA() As String
+For I = 1 To UBound(AIAns)
+AIA = Split(AIAns(I), "\")
+If InStr(YourMsg, AIA(0)) <> 0 Then '智能应答
+RobSay AIA(Int(Rnd * (UBound(AIA) - 1)) + 1), 1
+Exit Sub
+ElseIf I = UBound(AIAns) Then '随机应答
+RobSay AIA(Int(Rnd * (UBound(AIA) - 1)) + 1), 2
+Exit Sub
+End If
+Next I
+End Sub
